@@ -48,10 +48,10 @@ def ejecutar_telegram():
     asyncio.run(iniciar_telegram())
 
 if __name__ == "__main__":
-    # Hilo para el bot de Telegram
+    # == INICIAR TELEGRAM ===
     threading.Thread(target=ejecutar_telegram, daemon=True).start()
 
-    # Flask para Render
+    # == INICIAR FLASK PARA RENDER ===
     port = int(os.environ.get("PORT", 10000))
     print(f"Servidor Flask escuchando en puerto {port}...")
     app.run(host="0.0.0.0", port=port)
