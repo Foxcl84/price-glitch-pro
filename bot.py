@@ -6,7 +6,6 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 
 from commands import cmd_start, cmd_agregar, cmd_listar, cmd_eliminar, cmd_scan, cmd_help
 from database import inicializar_db
-from monitor import iniciar_monitoreo
 from scanner import escanear_productos
 
 
