@@ -4,7 +4,7 @@ import threading
 from flask import Flask
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
-from commands import cmd_start, cmd_agregar, cmd_listar, cmd_eliminar, cmd_ayuda
+from commands import cmd_start, cmd_agregar, cmd_listar, cmd_eliminar, cmd_help
 from database import inicializar_bd
 from scanner import escanear_productos
 
