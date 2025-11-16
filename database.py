@@ -1,73 +1,42 @@
-import os
 import psycopg2
+import os
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DB_URL = os.getenv("DATABASE_URL")
 
 def conectar():
-    return psycopg2.connect(DATABASE_URL)
+    return psycopg2.connect(DB_URL)
 
-def inicializar_bd():
+def inicializar_db():
     conn = conectar()
     cur = conn.cursor()
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS urls (
             id SERIAL PRIMARY KEY,
             url TEXT NOT NULL,
-            tienda TEXT NOT NULL,
-            precio_min INT DEFAULT 0
+            tienda TEXT NOT NULL
         );
     """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS checks_log (
-            id SERIAL PRIMARY KEY,
-            url_id INT REFERENCES urls(id),
-            precio INT,
-            fecha TIMESTAMP DEFAULT NOW()
-        );
-    """)
-
     conn.commit()
-    cur.close()
     conn.close()
 
-
-def agregar_url(url, tienda, precio_min):
+def agregar_url(url, tienda):
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("INSERT INTO urls (url, tienda, precio_min) VALUES (%s, %s, %s);",
-                (url, tienda, precio_min))
+    cur.execute("INSERT INTO urls (url, tienda) VALUES (%s, %s);", (url, tienda))
     conn.commit()
-    cur.close()
     conn.close()
-
 
 def obtener_urls():
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("SELECT id, url, tienda, precio_min FROM urls;")
-    data = cur.fetchall()
-    cur.close()
+    cur.execute("SELECT id, url, tienda FROM urls;")
+    datos = cur.fetchall()
     conn.close()
-    return data
-
+    return datos
 
 def eliminar_url(id_url):
     conn = conectar()
     cur = conn.cursor()
     cur.execute("DELETE FROM urls WHERE id = %s;", (id_url,))
     conn.commit()
-    cur.close()
     conn.close()
-
-
-def registrar_check(url_id, precio):
-    conn = conectar()
-    cur = conn.cursor()
-    cur.execute("INSERT INTO checks_log (url_id, precio) VALUES (%s, %s);",
-                (url_id, precio))
-    conn.commit()
-    cur.close()
-    conn.close()
-
