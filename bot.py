@@ -23,7 +23,7 @@ async def main():
     if not BOT_TOKEN:
         print("❌ ERROR: BOT_TOKEN no configurado")
         print("💡 Verifica el archivo .env")
-        sys.exit(1)
+        return
 
     print("✅ BOT_TOKEN encontrado")
 
@@ -43,20 +43,32 @@ async def main():
     print("✅ Comandos: /start, /agregar, /listar, /eliminar, /scan, /help")
     print("⏰ Servicio 24/7 - Esperando mensajes...")
 
-    # Iniciar polling con manejo mejorado
-    await application.run_polling(
-        drop_pending_updates=True,
-        close_loop=False  # Importante para evitar el error
-    )
-
-def start_bot():
-    """Función wrapper para manejar el event loop correctamente"""
+    # Iniciar polling - método simplificado
+    await application.initialize()
+    await application.start()
+    await application.updater.start_polling()
+    
+    # Mantener el bot corriendo
     try:
-        asyncio.run(main())
+        while True:
+            await asyncio.sleep(3600)  # Esperar 1 hora
     except KeyboardInterrupt:
-        print("\n🛑 Bot detenido por el usuario")
-    except Exception as e:
-        print(f"❌ Error: {e}")
+        print("\n🛑 Deteniendo bot...")
+    finally:
+        await application.updater.stop()
+        await application.stop()
+        await application.shutdown()
 
 if __name__ == "__main__":
-    start_bot()
+    # Crear nuevo event loop explícitamente
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    try:
+        loop.run_until_complete(main())
+    except KeyboardInterrupt:
+        print("\n✅ Bot detenido correctamente")
+    except Exception as e:
+        print(f"❌ Error: {e}")
+    finally:
+        loop.close()
