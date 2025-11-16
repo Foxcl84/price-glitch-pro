@@ -6,7 +6,7 @@ from scanner import obtener_precio
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Bienvenido al *Price Glitch Pro*.\n"
-        "Usa /agregar, /listar, /eliminar, /scan"
+        "Usa /agregar, /listar, /eliminar, /scan, /help"
     )
 
 async def cmd_agregar(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -51,3 +51,25 @@ async def cmd_scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
         resp += f"{tienda}: {url}\nPrecio: {precio if precio else 'No detectado'}\n\n"
 
     await update.message.reply_text(resp)
+
+async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Muestra la ayuda de comandos disponibles"""
+    help_text = """
+🤖 **Comandos disponibles:**
+
+/start - Iniciar el bot
+/agregar <url> <tienda> - Agregar producto a monitorear  
+/listar - Ver productos en monitoreo
+/eliminar <id> - Eliminar producto del monitoreo
+/scan - Escanear precios actuales
+/help - Mostrar esta ayuda
+
+📝 **Ejemplos:**
+/agregar https://ejemplo.com/producto amazon
+/eliminar 1
+/scan - para ver precios actuales
+
+⚡ **Funcionalidad:**
+El bot monitorea precios y detecta cambios importantes automáticamente.
+    """
+    await update.message.reply_text(help_text, parse_mode='Markdown')
