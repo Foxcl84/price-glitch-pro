@@ -1,46 +1,73 @@
 import os
 import psycopg2
-from psycopg2.extras import RealDictCursor
 
-def get_connection():
-    return psycopg2.connect(os.getenv("DATABASE_URL"), sslmode="require")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-def crear_tablas():
-    conn = get_connection(); cur = conn.cursor()
-    cur.execute(
-        "CREATE TABLE IF NOT EXISTS alertas (id SERIAL PRIMARY KEY, tienda VARCHAR(50), url TEXT, precio_anterior VARCHAR(50), precio_actual VARCHAR(50), fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP);"
-    )
-    cur.execute(
-        "CREATE TABLE IF NOT EXISTS urls (id SERIAL PRIMARY KEY, tienda VARCHAR(50), url TEXT);"
-    )
-    conn.commit(); cur.close(); conn.close()
+def conectar():
+    return psycopg2.connect(DATABASE_URL)
 
-def insertar_url(tienda, url):
-    conn = get_connection(); cur = conn.cursor()
-    cur.execute("INSERT INTO urls (tienda, url) VALUES (%s, %s) RETURNING id;", (tienda.lower(), url))
-    new_id = cur.fetchone()[0]
-    conn.commit(); cur.close(); conn.close()
-    return new_id
+def inicializar_bd():
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS urls (
+            id SERIAL PRIMARY KEY,
+            url TEXT NOT NULL,
+            tienda TEXT NOT NULL,
+            precio_min INT DEFAULT 0
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS checks_log (
+            id SERIAL PRIMARY KEY,
+            url_id INT REFERENCES urls(id),
+            precio INT,
+            fecha TIMESTAMP DEFAULT NOW()
+        );
+    """)
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def agregar_url(url, tienda, precio_min):
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO urls (url, tienda, precio_min) VALUES (%s, %s, %s);",
+                (url, tienda, precio_min))
+    conn.commit()
+    cur.close()
+    conn.close()
+
 
 def obtener_urls():
-    conn = get_connection(); cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute("SELECT id, tienda, url FROM urls ORDER BY id ASC;")
-    rows = cur.fetchall()
-    cur.close(); conn.close()
-    return rows
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("SELECT id, url, tienda, precio_min FROM urls;")
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return data
+
 
 def eliminar_url(id_url):
-    conn = get_connection(); cur = conn.cursor()
+    conn = conectar()
+    cur = conn.cursor()
     cur.execute("DELETE FROM urls WHERE id = %s;", (id_url,))
-    conn.commit(); cur.close(); conn.close()
+    conn.commit()
+    cur.close()
+    conn.close()
 
-def reset_urls():
-    conn = get_connection(); cur = conn.cursor()
-    cur.execute("DELETE FROM urls;")
-    conn.commit(); cur.close(); conn.close()
 
-def guardar_alerta(tienda, url, precio_anterior, precio_actual):
-    conn = get_connection(); cur = conn.cursor()
-    cur.execute("INSERT INTO alertas (tienda, url, precio_anterior, precio_actual) VALUES (%s, %s, %s, %s);",
-                (tienda, url, precio_anterior, precio_actual))
-    conn.commit(); cur.close(); conn.close()
+def registrar_check(url_id, precio):
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO checks_log (url_id, precio) VALUES (%s, %s);",
+                (url_id, precio))
+    conn.commit()
+    cur.close()
+    conn.close()
+
