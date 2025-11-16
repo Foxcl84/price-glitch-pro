@@ -10,12 +10,25 @@ from database import inicializar_bd
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
+# ============================
+#       FLASK SERVER
+# ============================
 app = Flask(__name__)
 
 @app.get("/")
 def home():
     return "BOT Price Glitch profesional corriendo OK."
 
+
+def iniciar_flask():
+    port = int(os.environ.get("PORT", 10000))
+    print(f"Servidor Flask escuchando en puerto {port}...")
+    app.run(host="0.0.0.0", port=port)
+
+
+# ============================
+#     SCANNER DE PRODUCTOS
+# ============================
 def iniciar_scanner(app_telegram):
     import time
     while True:
@@ -25,7 +38,11 @@ def iniciar_scanner(app_telegram):
             print("[ERROR SCANNER]", e)
         time.sleep(30)
 
-async def iniciar_telegram():
+
+# ============================
+#    TELEGRAM BOT (MAIN THREAD)
+# ============================
+async def main_telegram():
     print("Iniciando bot profesional...")
 
     inicializar_bd()
@@ -39,19 +56,19 @@ async def iniciar_telegram():
     app_telegram.add_handler(CommandHandler("ayuda", cmd_ayuda))
     app_telegram.add_handler(MessageHandler(filters.TEXT, cmd_ayuda))
 
+    # Scanner paralelo
     threading.Thread(target=iniciar_scanner, args=(app_telegram,), daemon=True).start()
 
     print("Bot Telegram iniciado correctamente.")
     await app_telegram.run_polling()
 
-def ejecutar_telegram():
-    asyncio.run(iniciar_telegram())
 
+# ============================
+#           MAIN
+# ============================
 if __name__ == "__main__":
-    # == INICIAR TELEGRAM ===
-    threading.Thread(target=ejecutar_telegram, daemon=True).start()
+    # 1. Iniciar Flask en thread secundario
+    threading.Thread(target=iniciar_flask, daemon=True).start()
 
-    # == INICIAR FLASK PARA RENDER ===
-    port = int(os.environ.get("PORT", 10000))
-    print(f"Servidor Flask escuchando en puerto {port}...")
-    app.run(host="0.0.0.0", port=port)
+    # 2. Iniciar Telegram en el hilo principal (OBLIGATORIO)
+    asyncio.run(main_telegram())
