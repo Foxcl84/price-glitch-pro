@@ -40,7 +40,13 @@ def iniciar_scanner():
 # ---------------------------------------------
 # 3) TELEGRAM – Configuración del Bot
 # ---------------------------------------------
-def configurar_bot():
+def main():
+    """Función principal del bot de Telegram"""
+    if not BOT_TOKEN:
+        print("❌ ERROR: BOT_TOKEN no configurado")
+        return
+
+    # Configurar aplicación de Telegram
     app_tg = ApplicationBuilder().token(BOT_TOKEN).build()
 
     # Handlers de comandos
@@ -54,33 +60,38 @@ def configurar_bot():
     # Mensajes genéricos
     app_tg.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, cmd_help))
 
-    return app_tg
-
-# ---------------------------------------------
-# MAIN - Arquitectura simplificada
-# ---------------------------------------------
-def main():
-    # Inicializar base de datos
-    inicializar_db()
-    
     # Iniciar scanner en segundo plano
     scanner_thread = threading.Thread(target=iniciar_scanner, daemon=True)
     scanner_thread.start()
     
-    # Configurar y ejecutar bot
-    bot_app = configurar_bot()
-    print("🤖 Bot iniciado - Listo para recibir comandos")
-    bot_app.run_polling(
+    # Ejecutar bot
+    print("🤖 Bot de Telegram iniciado - Listo para recibir comandos")
+    app_tg.run_polling(
         allowed_updates=['message', 'callback_query'],
         drop_pending_updates=True
     )
 
+# ---------------------------------------------
+# MAIN - Arquitectura para Render
+# ---------------------------------------------
 if __name__ == "__main__":
-    # En Render, necesitamos elegir: Flask O Telegram, no ambos
+    # Inicializar base de datos siempre
+    print("🔄 Inicializando base de datos...")
+    inicializar_db()
+    
+    # En Render, ejecutar Flask Y el bot en threads separados
     if os.getenv("RENDER"):
-        # En Render, ejecutamos Flask para mantener el servicio vivo
+        print("🚀 Entorno Render detectado - Iniciando Bot + Flask...")
+        
+        # Iniciar el bot de Telegram en un thread
+        bot_thread = threading.Thread(target=main, daemon=True)
+        bot_thread.start()
+        
+        # Ejecutar Flask en el thread principal (obligatorio para Render)
         port = int(os.getenv("PORT", 10000))
-        app.run(host="0.0.0.0", port=port)
+        print(f"🌐 Flask iniciando en puerto {port}")
+        app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
     else:
-        # En local, ejecutamos el bot normalmente
+        # En local, solo ejecutar el bot normalmente
+        print("💻 Entorno local - Iniciando solo Bot...")
         main()
