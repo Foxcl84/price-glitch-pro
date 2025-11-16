@@ -1,12 +1,53 @@
-async def cmd_ayuda(update, context):
-    texto = (
-        "📌 *Comandos Disponibles*\n\n"
-        "/start - Inicia el bot\n"
-        "/agregar <url> <precio_min> - Agrega un producto\n"
-        "/listar - Lista los productos monitoreados\n"
-        "/eliminar <id> - Elimina un producto\n"
-        "/ayuda - Muestra esta ayuda\n"
+from telegram import Update
+from telegram.ext import ContextTypes
+from database import agregar_url, obtener_urls, eliminar_url
+from scanner import obtener_precio
+
+async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "👋 Bienvenido al *Price Glitch Pro*.\n"
+        "Usa /agregar, /listar, /eliminar, /scan"
     )
 
-    await update.message.reply_text(texto, parse_mode="Markdown")
+async def cmd_agregar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        url = context.args[0]
+        tienda = context.args[1]
+        agregar_url(url, tienda)
+        await update.message.reply_text("URL agregada correctamente ✔️")
+    except:
+        await update.message.reply_text("Formato:\n/agregar <url> <tienda>")
 
+async def cmd_listar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    filas = obtener_urls()
+    if not filas:
+        await update.message.reply_text("No hay URLs registradas.")
+        return
+
+    texto = "📌 *Productos registrados:*\n\n"
+    for fila in filas:
+        texto += f"ID: {fila[0]}\n{fila[1]}\nTIENDA: {fila[2]}\n\n"
+
+    await update.message.reply_text(texto)
+
+async def cmd_eliminar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        id_url = int(context.args[0])
+        eliminar_url(id_url)
+        await update.message.reply_text("Eliminado correctamente ✔️")
+    except:
+        await update.message.reply_text("Formato:\n/eliminar <id>")
+
+async def cmd_scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    filas = obtener_urls()
+    if not filas:
+        await update.message.reply_text("No hay URLs para escanear.")
+        return
+
+    resp = "🔎 *Resultados del escaneo:*\n\n"
+
+    for idu, url, tienda in filas:
+        precio = obtener_precio(url)
+        resp += f"{tienda}: {url}\nPrecio: {precio if precio else 'No detectado'}\n\n"
+
+    await update.message.reply_text(resp)
